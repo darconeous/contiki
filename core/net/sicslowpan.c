@@ -1410,8 +1410,11 @@ output(uip_lladdr_t *localdest)
    */
   if(localdest == NULL) {
     rimeaddr_copy(&dest, &rimeaddr_null);
+    // Never request an ACK from broadcasts.
+    packetbuf_set_attr(PACKETBUF_ATTR_RELIABLE,0);
   } else {
     rimeaddr_copy(&dest, (const rimeaddr_t *)localdest);
+    packetbuf_set_attr(PACKETBUF_ATTR_RELIABLE,1);
   }
   
   PRINTFO("sicslowpan output: sending packet len %d\n", uip_len);
@@ -1461,7 +1464,7 @@ output(uip_lladdr_t *localdest)
      */
 
     PRINTFO("Fragmentation sending packet len %d\n", uip_len);
-
+    
     /* Create 1st Fragment */
     PRINTFO("sicslowpan output: 1rst fragment ");
 
@@ -1621,8 +1624,8 @@ input(void)
       frag_size = GET16(RIME_FRAG_PTR, RIME_FRAG_DISPATCH_SIZE) & 0x07ff;
 /*       frag_tag = uip_ntohs(RIME_FRAG_BUF->tag); */
       frag_tag = GET16(RIME_FRAG_PTR, RIME_FRAG_TAG);
-      PRINTFI("size %d, tag %d, offset %d)\n",
-             frag_size, frag_tag, frag_offset);
+      PRINTFI("totsize %d, tag %d, fragsize %d, offset %d bytes)\n",
+             frag_size, frag_tag,packetbuf_datalen() - rime_hdr_len, (uint16_t)(frag_offset << 3));
       rime_hdr_len += SICSLOWPAN_FRAG1_HDR_LEN;
       /*      printf("frag1 %d %d\n", reass_tag, frag_tag);*/
       first_fragment = 1;
@@ -1636,8 +1639,8 @@ input(void)
       frag_offset = RIME_FRAG_PTR[RIME_FRAG_OFFSET];
       frag_tag = GET16(RIME_FRAG_PTR, RIME_FRAG_TAG);
       frag_size = GET16(RIME_FRAG_PTR, RIME_FRAG_DISPATCH_SIZE) & 0x07ff;
-      PRINTFI("size %d, tag %d, offset %d)\n",
-             frag_size, frag_tag, frag_offset);
+      PRINTFI("totsize %d, tag %d, fragsize %d, offset %d bytes)\n",
+             frag_size, frag_tag,packetbuf_datalen() - rime_hdr_len, (uint16_t)(frag_offset << 3));
       rime_hdr_len += SICSLOWPAN_FRAGN_HDR_LEN;
 
       /* If this is the last fragment, we may shave off any extrenous
@@ -1656,6 +1659,14 @@ input(void)
   if(processed_ip_in_len > 0) {
     /* reassembly is ongoing */
     /*    printf("frag %d %d\n", reass_tag, frag_tag);*/
+    if((reass_tag  != frag_tag)
+	   && (frag_offset==0)
+	   && rimeaddr_cmp(&frag_sender, packetbuf_addr(PACKETBUF_ADDR_SENDER))
+	) {
+      PRINTFI("sicslowpan input: Got start of new fragmented packet, dropping previous packet.\n");
+	  processed_ip_in_len = 0;
+	  sicslowpan_len = 0;
+	} else
     if((frag_size > 0 &&
         (frag_size != sicslowpan_len ||
          reass_tag  != frag_tag ||
@@ -1668,7 +1679,7 @@ input(void)
       PRINTFI("sicslowpan input: Dropping 6lowpan packet that is not a fragment of the packet currently being reassembled\n");
       return;
     }
-  } else {
+  } else if(processed_ip_in_len == 0) {
     /*
      * reassembly is off
      * start it if we received a fragment
