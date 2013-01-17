@@ -28,7 +28,7 @@ AVRDUDE_PORT=usb
 
 # Additional avrdude options
 # Verify off
-#AVRDUDE_OPTIONS=-V
+AVRDUDE_OPTIONS=-V
 
 AVRDUDE_MCU=m1284p
 
