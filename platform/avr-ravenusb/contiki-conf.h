@@ -90,6 +90,7 @@ void clock_adjust_ticks(clock_time_t howmany);
 /* Generate random MAC address on first startup? */
 /* Random number from radio clock skew or ADC noise? */
 #define JACKDAW_CONF_USE_SETTINGS		0
+#define CONTIKI_CONF_SETTINGS_MANAGER	JACKDAW_CONF_USE_SETTINGS
 #define JACKDAW_CONF_RANDOM_MAC         0
 #define RNG_CONF_USE_RADIO_CLOCK	    1
 //#define RNG_CONF_USE_ADC	1
