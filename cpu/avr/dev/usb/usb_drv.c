@@ -54,6 +54,10 @@
 
 //_____ M A C R O S ________________________________________________________
 
+#ifndef USB_ENDPOINT_WAIT_TIMEOUT
+#define USB_ENDPOINT_WAIT_TIMEOUT	250
+#endif
+
 //_____ D E C L A R A T I O N ______________________________________________
 
 #if (USB_DEVICE_FEATURE==DISABLED && USB_HOST_FEATURE==DISABLED)
@@ -61,8 +65,6 @@
 #endif
 
 #if (USB_DEVICE_FEATURE == ENABLED)
-
-#define USB_ENDPOINT_WAIT_TIMEOUT	250
 
 U8 usb_endpoint_wait_for_write_enabled() {
 #if USB_ENDPOINT_WAIT_TIMEOUT

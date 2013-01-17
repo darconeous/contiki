@@ -148,13 +148,20 @@ extern void suspend_action(void)
   */
 void usb_start_device (void)
 {
-   Pll_start_auto();
-   Wait_pll_ready();
-   Usb_unfreeze_clock();
-   Usb_enable_vbus_interrupt();
-   Usb_enable_reset_interrupt();
-   usb_init_device();         // configure the USB controller EP0
-   Usb_attach();
+  Pll_start_auto();
+  Wait_pll_ready();
+  Usb_unfreeze_clock();
+  Usb_enable_vbus_interrupt();
+  Usb_enable_reset_interrupt();
+  Usb_enable_flow_error_interrupt();
+  Usb_enable_nak_in_interrupt();
+  Usb_enable_nak_out_interrupt();
+  Usb_enable_receive_setup_interrupt();
+  Usb_enable_receive_out_interrupt();
+  Usb_enable_stalled_interrupt();
+  Usb_enable_in_ready_interrupt();
+  usb_init_device();         // configure the USB controller EP0
+  Usb_attach();
 }
 
 
@@ -294,7 +301,7 @@ PROCESS_END();
 ISR(USB_GEN_vect)
 { 
 
-	process_post(&usb_process, USB_EVENT, NULL);
+	process_post(PROCESS_BROADCAST, USB_EVENT, NULL);
 
   //- VBUS state detection
    if (Is_usb_vbus_transition() && Is_usb_vbus_interrupt_enabled())

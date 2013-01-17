@@ -914,6 +914,11 @@ typedef enum endpoint_parameter{ep_num, ep_type, ep_direction, ep_size, ep_bank,
 	#define Usb_write_word_enum_struc(x)	(wSWAP(x))
 #endif
 
+#define Usb_write_word(x)	Usb_write_byte((x)&0xFF),Usb_write_byte((x>>8)&0xFF)
+#define Usb_write_long(x)	Usb_write_word((x)&0xFFFF),Usb_write_word((x>>16)&0xFFFF)
+
+#define Usb_read_word()	((U16)Usb_read_byte()+((U16)Usb_read_byte()<<8))
+
 
 //_____ D E C L A R A T I O N ______________________________________________
 

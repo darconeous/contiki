@@ -342,12 +342,12 @@ uint8_t rndis_send_encapsulated_command(uint16_t wLength)
  * \brief Send an interrupt over the interrupt endpoint to the host.
  */
 void rndis_send_interrupt(void)
-	{
-	
+{
 	//Schedule the interrupt to take place next
 	//time USB task is run
-	schedule_interrupt = 1;	
-	}
+	schedule_interrupt = 1;
+	process_poll(&usb_process);
+}
 
 #define INFBUF ((uint32_t *)(encapsulated_buffer + sizeof(rndis_query_cmplt_t)))
 

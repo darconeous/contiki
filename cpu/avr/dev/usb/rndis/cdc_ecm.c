@@ -29,10 +29,6 @@ static U16 usb_ecm_packet_filter = 0;
 #define PACKET_TYPE_BROADCAST		(1<<3)
 #define PACKET_TYPE_MULTICAST		(1<<4)
 
-#define Usb_write_word(x)	Usb_write_byte((x)&0xFF),Usb_write_byte((x>>8)&0xFF)
-#define Usb_write_long(x)	Usb_write_word((x)&0xFFFF),Usb_write_word((x>>16)&0xFFFF)
-
-#define Usb_read_word()	((U16)Usb_read_byte()+((U16)Usb_read_byte()<<8))
 
 void
 cdc_ecm_set_ethernet_packet_filter(void) {
@@ -184,8 +180,8 @@ cdc_ecm_process(void) {
 #ifdef USB_ETH_HOOK_INIT
 		USB_ETH_HOOK_INIT();
 #endif
-		cdc_ecm_notify_network_connection(1);
-		cdc_ecm_notify_connection_speed_change(250000,250000);
+		cdc_ecm_notify_network_connection(usb_eth_is_active);
+		cdc_ecm_notify_connection_speed_change(usb_eth_is_active?250000:0,usb_eth_is_active?250000:0);
 		doInit = 0;
 		USB_ETH_HOOK_SET_PROMISCIOUS_MODE(PACKET_TYPE_PROMISCUOUS==(usb_ecm_packet_filter&PACKET_TYPE_PROMISCUOUS));
 
