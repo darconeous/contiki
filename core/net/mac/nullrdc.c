@@ -123,7 +123,9 @@ static void
 send_packet(mac_callback_t sent, void *ptr)
 {
   int ret;
+#if !NETSTACK_CONF_BRIDGE_MODE
   packetbuf_set_addr(PACKETBUF_ADDR_SENDER, &rimeaddr_node_addr);
+#endif
 #if NULLRDC_802154_AUTOACK || NULLRDC_802154_AUTOACK_HW
   packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 1);
 #endif /* NULLRDC_802154_AUTOACK || NULLRDC_802154_AUTOACK_HW */
@@ -256,7 +258,7 @@ packet_input(void)
 #endif /* NULLRDC_802154_AUTOACK */
   if(NETSTACK_FRAMER.parse() < 0) {
     PRINTF("nullrdc: failed to parse %u\n", packetbuf_datalen());
-#if NULLRDC_ADDRESS_FILTER
+#if NULLRDC_ADDRESS_FILTER || NETSTACK_CONF_BRIDGE_MODE
   } else if(!rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER),
                                          &rimeaddr_node_addr) &&
             !rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER),
