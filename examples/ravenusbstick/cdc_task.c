@@ -537,6 +537,38 @@ void menu_process(char c)
 				channel_string_i = 0;
 				break;
 
+#if JACKDAW_CONF_USE_CONFIGURABLE_RDC
+extern void jackdaw_choose_rdc_driver(uint8_t i);
+			case '1':
+				jackdaw_choose_rdc_driver(0);
+#if CONTIKI_CONF_SETTINGS_MANAGER
+				settings_set_uint8(SETTINGS_KEY_RDC_INDEX,0);
+#endif
+				PRINTF_P(PSTR("RDC Driver Changed To: %s\n"), NETSTACK_CONF_RDC.name);
+				break;
+			case '2':
+				jackdaw_choose_rdc_driver(1);
+#if CONTIKI_CONF_SETTINGS_MANAGER
+				settings_set_uint8(SETTINGS_KEY_RDC_INDEX,1);
+#endif
+				PRINTF_P(PSTR("RDC Driver Changed To: %s\n"), NETSTACK_CONF_RDC.name);
+				break;
+			case '3':
+				jackdaw_choose_rdc_driver(2);
+#if CONTIKI_CONF_SETTINGS_MANAGER
+				settings_set_uint8(SETTINGS_KEY_RDC_INDEX,2);
+#endif
+				PRINTF_P(PSTR("RDC Driver Changed To: %s\n"), NETSTACK_CONF_RDC.name);
+				break;
+			case '4':
+				jackdaw_choose_rdc_driver(3);
+#if CONTIKI_CONF_SETTINGS_MANAGER
+				settings_set_uint8(SETTINGS_KEY_RDC_INDEX,3);
+#endif
+				PRINTF_P(PSTR("RDC Driver Changed To: %s\n"), NETSTACK_CONF_RDC.name);
+				break;
+#endif
+
 			case 'p':
 #if RF230BB
 				PRINTF_P(PSTR("\nSelect transmit power (0=+3dBm 15=-17.2dBm) [%d]: "), rf230_get_txpower());

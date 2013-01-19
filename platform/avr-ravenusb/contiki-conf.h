@@ -105,6 +105,9 @@ void clock_adjust_ticks(clock_time_t howmany);
 #define JACKDAW_CONF_ALT_LED_SCHEME		1
 #endif
 
+/* Enable this if you want to be able to swap our the RDC in the netstack */
+//#define JACKDAW_CONF_USE_CONFIGURABLE_RDC	0
+
 /* COM port to be used for SLIP connection. Not tested on Jackdaw. */
 #define SLIP_PORT RS232_PORT_0
 
@@ -256,6 +259,11 @@ extern void mac_log_802_15_4_rx(const uint8_t* buffer, size_t total_len);
 #define SICSLOWPAN_CONF_ADDR_CONTEXT_1 {addr_contexts[1].prefix[0]=0xbb;addr_contexts[1].prefix[1]=0xbb;}
 #define SICSLOWPAN_CONF_ADDR_CONTEXT_2 {addr_contexts[2].prefix[0]=0x20;addr_contexts[2].prefix[1]=0x01;addr_contexts[2].prefix[2]=0x49;addr_contexts[2].prefix[3]=0x78,addr_contexts[2].prefix[4]=0x1d;addr_contexts[2].prefix[5]=0xb1;}
 
+
+/* ************************************************************************** */
+#pragma mark - NETSTACK Settings
+/* ************************************************************************** */
+
 /* 211 bytes per queue buffer */
 #define QUEUEBUF_CONF_NUM        8
 
@@ -348,10 +356,24 @@ typedef unsigned short uip_stats_t;
 #undef UIP_CONF_MAX_LISTENPORTS
 #define UIP_CONF_MAX_LISTENPORTS    2
 #define UIP_CONF_UDP_CONNS          6
+#if JACKDAW_CONF_USE_CONFIGURABLE_RDC
+/* Configurable radio cycling */
+/* EXPERIMENTAL */
+struct rdc_driver;
+extern const struct rdc_driver *rdc_config_driver;
+#define NETSTACK_CONF_RDC         (*rdc_config_driver)
 
 #elif 1             /* cx-mac radio cycling */
 #define NETSTACK_CONF_MAC         nullmac_driver
 //#define NETSTACK_CONF_MAC         csma_driver
+/* Staticly-configured radio cycling below this point */
+#elif 1 /* No radio cycling */
+#define NETSTACK_CONF_RDC         sicslowmac_driver
+
+#elif 0  /* Contiki-mac radio cycling */
+#define NETSTACK_CONF_RDC         contikimac_driver
+
+#elif 0             /* cx-mac radio cycling */
 #define NETSTACK_CONF_RDC         cxmac_driver
 #define NETSTACK_CONF_FRAMER      framer_802154
 #define NETSTACK_CONF_RADIO       rf230_driver

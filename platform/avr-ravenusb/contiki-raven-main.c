@@ -123,6 +123,33 @@ struct rtimer rt;
 void rtimercycle(void) {rtimerflag=1;}
 #endif /* TESTRTIMER */
 
+
+#if JACKDAW_CONF_USE_CONFIGURABLE_RDC
+// EXPERIMENTAL.
+#include "net/mac/nullrdc.h"
+#include "net/mac/contikimac.h"
+#include "net/mac/sicslowmac.h"
+#include "net/mac/cxmac.h"
+// Selected via SETTINGS_KEY_RDC_INDEX
+const struct rdc_driver *rdc_config_choices[] = {
+	&nullrdc_driver,
+	&sicslowmac_driver,
+	&contikimac_driver,
+	&cxmac_driver,
+};
+#define MAX_RDC_CONFIG_CHOICES		(sizeof(rdc_config_choices)/sizeof(*rdc_config_choices))
+const struct rdc_driver *rdc_config_driver = &nullrdc_driver;
+void jackdaw_choose_rdc_driver(uint8_t i) {
+	if(i<MAX_RDC_CONFIG_CHOICES) {
+		if(rdc_config_driver)
+			rdc_config_driver->off(1);
+		rdc_config_driver = rdc_config_choices[i];
+		rdc_config_driver->init();
+	}
+}
+#endif // #if JACKDAW_CONF_USE_CONFIGURABLE_RDC
+
+
 #if UIP_CONF_IPV6_RPL
 /*---------------------------------------------------------------------------*/
 /*---------------------------------  RPL   ----------------------------------*/
