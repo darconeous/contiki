@@ -233,8 +233,8 @@ void pwm_duty_ex(int timer_num, uint32_t duty)
 			      : /* out */
 				[tmp1] "=&l" (tmp1),
 				[tmp2] "=&l" (tmp2),
-				[cmpld] "=m" (timer->CMPLD1),
-				[load] "=m" (timer->LOAD)
+				[cmpld] "=m" (((struct TMR_struct *)timer)->CMPLD1),
+				[load] "=m" (((struct TMR_struct *)timer)->LOAD)
 			      : /* in */
 				[comp] "m" (timer->COMP1),
 				[count] "m" (timer->CNTR),
