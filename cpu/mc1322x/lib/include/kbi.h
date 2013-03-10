@@ -36,7 +36,7 @@
 #ifndef KBI_H
 #define KBI_H
 
-#define enable_irq_kbi(k)  (set_bit(*CRM_WU_CNTL,(EXT_WU_IEN+k-4)))
+#define enable_irq_kbi(k)  (set_bit(*CRM_WU_CNTL,(EXT_WU_IEN+k-4)),set_bit(*CRM_WU_CNTL,(EXT_WU_EN+k-4)))
 #define disable_irq_kbi(k) (clear_bit(*CRM_WU_CNTL,(EXT_WU_IEN+k-4)))
 
 #define kbi_evnt(k) (bit_is_set(*CRM_STATUS,(EXT_WU_EVT+k-4)))

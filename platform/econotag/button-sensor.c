@@ -67,6 +67,7 @@ configure(int type, int c)
 		if (c) {
 			if(!status(SENSORS_ACTIVE)) {
 				timer_set(&debouncetimer, 0);
+				enable_irq(CRM);
 				enable_irq_kbi(4);
 			}
 		} else {
