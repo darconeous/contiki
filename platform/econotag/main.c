@@ -41,6 +41,7 @@
 #include "dev/button-sensor.h"
 #include "net/rime/rimeaddr.h"
 #include "net/netstack.h"
+#include "dev/watchdog.h"
 
 /* mc1322x */
 #include "mc1322x.h"
@@ -62,6 +63,8 @@ int main(void) {
 
 	mc1322x_init();
 
+	watchdog_init();
+	watchdog_start();
 	/* m12_init() flips the mux switch */
 
 	/* trims the main crystal load capacitance */
@@ -144,7 +147,10 @@ int main(void) {
 
 	/* Main scheduler loop */
 	while(1) {
+		watchdog_periodic();
+		watchdog_stop();
 		check_maca();
+		watchdog_start();
 
 		if(uart1_input_handler != NULL) {
 			if(uart1_can_get()) {
