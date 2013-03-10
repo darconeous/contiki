@@ -231,6 +231,7 @@
 #include "sicslow_ethernet.h"
 #include "rndis/rndis_protocol.h"
 #include "rndis/rndis_task.h"
+#include "status-leds.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -931,6 +932,7 @@ void slide(uint8_t * data, uint8_t length, int16_t slide)
 
 void
 mac_log_802_15_4_tx(const uint8_t* buffer, size_t total_len) {
+  status_leds_radio_tx();
   if (usbstick_mode.raw != 0) {
     uint8_t sendlen;
 
@@ -974,6 +976,7 @@ mac_log_802_15_4_tx(const uint8_t* buffer, size_t total_len) {
 
 void
 mac_log_802_15_4_rx(const uint8_t* buf, size_t len) {
+  status_leds_radio_rx();
   if (usbstick_mode.raw != 0) {
     uint8_t sendlen;
 
