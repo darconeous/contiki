@@ -82,7 +82,7 @@
 #endif /* NULL */
 
 #if !defined(__SDCC) && defined(SDCC_REVISION)
-#define __SDCC 1
+#define __SDCC  1
 #endif
 
 #if VERBOSE_DEBUG
@@ -112,7 +112,7 @@ strcasecmp(const char *s1, const char *s2)
 }
 #endif /* __SDCC */
 
-#define UIP_UDP_BUF ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
+#define UIP_UDP_BUF        ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
 
 /* If RESOLV_CONF_SUPPORTS_MDNS is set, then queries
  * for domain names in the local TLD will use mDNS as
@@ -140,16 +140,16 @@ strcasecmp(const char *s1, const char *s2)
 #endif
 
 #if !defined(CONTIKI_TARGET_NAME) && defined(BOARD)
-#define stringy2(x) #x
-#define stringy(x)  stringy2(x)
-#define CONTIKI_TARGET_NAME stringy(BOARD)
+#define stringy2(x)		#x
+#define stringy(x)		stringy2(x)
+#define CONTIKI_TARGET_NAME	stringy(BOARD)
 #endif
 
 #ifndef CONTIKI_CONF_DEFAULT_HOSTNAME
 #ifdef CONTIKI_TARGET_NAME
-#define CONTIKI_CONF_DEFAULT_HOSTNAME "contiki-"CONTIKI_TARGET_NAME
+#define CONTIKI_CONF_DEFAULT_HOSTNAME  "contiki-"CONTIKI_TARGET_NAME
 #else
-#define CONTIKI_CONF_DEFAULT_HOSTNAME "contiki"
+#define CONTIKI_CONF_DEFAULT_HOSTNAME  "contiki"
 #endif
 #endif
 
@@ -199,8 +199,8 @@ struct dns_hdr {
   uint16_t numextrarr;
 };
 
-#define RESOLV_ENCODE_INDEX(i) (uip_htons(i+1))
-#define RESOLV_DECODE_INDEX(i) (unsigned char)(uip_ntohs(i-1))
+#define RESOLV_ENCODE_INDEX(i)    (uip_htons(i+1))
+#define RESOLV_DECODE_INDEX(i)    (unsigned char)(uip_ntohs(i-1))
 
 /** These default values for the DNS server are Google's public DNS:
  *  <https://developers.google.com/speed/public-dns/docs/using>
@@ -707,8 +707,8 @@ check_entries(void)
                               (query - (uint8_t *) uip_appdata),
                               &resolv_mdns_addr, UIP_HTONS(MDNS_PORT));
 
-        PRINTF("resolver: (i=%d) Sent MDNS request for \"%s\".\n", i,
-               namemapptr->name);
+        PRINTF("resolver: (i=%d) Sent MDNS %s for \"%s\".\n", i,
+               namemapptr->is_probe?"probe":"request",namemapptr->name);
       } else {
         uip_udp_packet_sendto(resolv_conn, uip_appdata,
                               (query - (uint8_t *) uip_appdata),
@@ -735,17 +735,19 @@ check_entries(void)
 static void
 newdata(void)
 {
+  static uint8_t nquestions, nanswers, nauthrr;
+
+  static int8_t i;
+
+  register struct namemap *namemapptr;
+
   struct dns_answer *ans;
 
   struct dns_hdr const *hdr = (struct dns_hdr *)uip_appdata;
 
   unsigned char *queryptr = (unsigned char *)hdr + sizeof(*hdr);
 
-  register struct namemap *namemapptr;
-
-  static uint8_t nquestions, nanswers, nauthrr = 0;
-
-  static int8_t i;
+  const bool is_request = ((hdr->flags1 & ~1) == 0) && (hdr->flags2 == 0);
 
   /* We only care about the question(s) and the answers. The authrr
    * and the extrarr are simply discarded.
@@ -753,87 +755,91 @@ newdata(void)
   nquestions = (uint8_t) uip_ntohs(hdr->numquestions);
   nanswers = (uint8_t) uip_ntohs(hdr->numanswers);
 
+  queryptr = (unsigned char *)hdr + sizeof(*hdr);
+  i = 0;
+
   DEBUG_PRINTF
     ("resolver: flags1=0x%02X flags2=0x%02X nquestions=%d, nanswers=%d, nauthrr=%d, nextrarr=%d\n",
      hdr->flags1, hdr->flags2, (uint8_t) nquestions, (uint8_t) nanswers,
      (uint8_t) uip_ntohs(hdr->numauthrr),
      (uint8_t) uip_ntohs(hdr->numextrarr));
 
+  if(is_request && (0 == nquestions)) {
+    /* Skip requests with no questions. */
+    DEBUG_PRINTF("resolver: Skipping request with no questions.\n");
+    return;
+  }
+
 /** QUESTION HANDLING SECTION ************************************************/
 
-  if(((hdr->flags1 & ~1) == 0) && (hdr->flags2 == 0)) {
-    /* This is an DNS request! */
-#if RESOLV_CONF_SUPPORTS_MDNS
+  for(; nquestions > 0;
+      queryptr = skip_name(queryptr) + sizeof(struct dns_question),
+      nquestions--
+  ) {
 
-    /* Skip requests with no questions. */
-    if(!nquestions) {
-      return;
+    if(!is_request) {
+      /* If this isn't a request, we don't need to bother
+       * looking at the individual questions. For the most
+       * part, this loop to just used to skip past them.
+       */
+      continue;
     }
 
-    queryptr = (unsigned char *)hdr + sizeof(*hdr);
-
-    i = 0;
-
-    for(; nquestions > 0;
-        queryptr = skip_name(queryptr) + sizeof(struct dns_question),
-        nquestions--) {
-      struct dns_question *question =
-        (struct dns_question *)skip_name(queryptr);
+#if RESOLV_CONF_SUPPORTS_MDNS
+    struct dns_question *question = (struct dns_question *)skip_name(queryptr);
 
 #if !ARCH_DOESNT_NEED_ALIGNED_STRUCTS
-      static struct dns_question aligned;
-
-      memcpy(&aligned, question, sizeof(aligned));
-      question = &aligned;
+    static struct dns_question aligned;
+    memcpy(&aligned, question, sizeof(aligned));
+    question = &aligned;
 #endif /* __ARM__ */
 
-      DEBUG_PRINTF("resolver: Question %d: type=%d class=%d\n", ++i,
-                   uip_htons(question->type), uip_htons(question->class));
+    DEBUG_PRINTF("resolver: Question %d: type=%d class=%d\n", ++i,
+                 uip_htons(question->type), uip_htons(question->class));
 
-      if(((uip_ntohs(question->class) & 0x7FFF) != DNS_CLASS_IN)
-         || ((question->type != UIP_HTONS(DNS_TYPE_ANY))
-             && (question->type != UIP_HTONS(DNS_TYPE_AAAA))
-             && (question->type != UIP_HTONS(DNS_TYPE_A))
-         )) {
-        /* Skip unrecognised records. */
-        continue;
-      }
+    if(((uip_ntohs(question->class) & 0x7FFF) != DNS_CLASS_IN)
+       || ((question->type != UIP_HTONS(DNS_TYPE_ANY))
+           && (question->type != UIP_HTONS(DNS_TYPE_AAAA))
+           && (question->type != UIP_HTONS(DNS_TYPE_A))
+       )) {
+      /* Skip unrecognised records. */
+      continue;
+    }
 
-      if(!dns_name_isequal(queryptr, resolv_hostname, uip_appdata)) {
-        continue;
-      }
+    if(!dns_name_isequal(queryptr, resolv_hostname, uip_appdata)) {
+      continue;
+    }
 
-      PRINTF("resolver: THIS IS A REQUEST FOR US!!!\n");
+    PRINTF("resolver: THIS IS A REQUEST FOR US!!!\n");
 
-      if(mdns_state == MDNS_STATE_READY) {
-        /* We only send immediately if this isn't an MDNS request.
-         * Otherwise, we schedule ourselves to send later.
-         */
-        if(UIP_UDP_BUF->srcport == UIP_HTONS(MDNS_PORT)) {
-          mdns_announce_requested();
-        } else {
-          uip_udp_packet_sendto(resolv_conn, uip_appdata,
-                                mdns_prep_host_announce_packet(),
-                                &UIP_UDP_BUF->srcipaddr,
-                                UIP_UDP_BUF->srcport);
-        }
-        return;
+    if(mdns_state == MDNS_STATE_READY) {
+      /* We only send immediately if this isn't an MDNS request.
+       * Otherwise, we schedule ourselves to send later.
+       */
+      if(UIP_UDP_BUF->srcport == UIP_HTONS(MDNS_PORT)) {
+        mdns_announce_requested();
       } else {
-        PRINTF("resolver: But we are still probing. Waiting...\n");
-        /* We are still probing. We need to do the mDNS
-         * probe race condition check here and make sure
-         * we don't need to delay probing for a second.
-         */
-        nauthrr = (uint8_t) uip_ntohs(hdr->numauthrr);
+          uip_udp_packet_sendto(resolv_conn, uip_appdata,
+                              mdns_prep_host_announce_packet(),
+                              &UIP_UDP_BUF->srcipaddr,
+                              UIP_UDP_BUF->srcport);
+      }
+      return;
+    } else {
+      PRINTF("resolver: But we are still probing. Waiting...\n");
+      /* We are still probing. We need to do the mDNS
+       * probe race condition check here and make sure
+       * we don't need to delay probing for a second.
+       */
+      nauthrr = (uint8_t)uip_ntohs(hdr->numauthrr);
 
-        /* For now, we will always restart the collision check if
-         * there are *any* authority records present.
-         * In the future we should follow the spec more closely,
-         * but this should eventually converge to something reasonable.
-         */
-        if(nauthrr) {
-          start_name_collision_check(CLOCK_SECOND * 1.5);
-        }
+      /* For now, we will always restart the collision check if
+       * there are *any* authority records present.
+       * In the future we should follow the spec more closely,
+       * but this should eventually converge to something reasonable.
+       */
+      if(nauthrr) {
+        start_name_collision_check(CLOCK_SECOND * 1.5);
       }
     }
 #endif /* RESOLV_CONF_SUPPORTS_MDNS */
@@ -841,11 +847,11 @@ newdata(void)
 
 /** ANSWER HANDLING SECTION **************************************************/
 
-  if(!nanswers) {
-    DEBUG_PRINTF("resolver: Skipping request/response with no answers.\n");
-    /* We demand answers! */
+  if(0 == nanswers) {
+    /* Skip responses with no answers. */
     return;
   }
+
 #if RESOLV_CONF_SUPPORTS_MDNS
   if(UIP_UDP_BUF->srcport == UIP_HTONS(MDNS_PORT)
      && hdr->id == 0) {
@@ -864,14 +870,15 @@ newdata(void)
     namemapptr = &names[i];
 
     if(i >= RESOLV_ENTRIES || i < 0 || namemapptr->state != STATE_ASKING) {
-      PRINTF("resolver: Bad ID (%04X) on incoming DNS response\n",
-             uip_ntohs(hdr->id));
+      PRINTF("resolver: DNS response has bad ID (%04X) \n", uip_ntohs(hdr->id));
       return;
     }
 
     PRINTF("resolver: Incoming response for \"%s\".\n", namemapptr->name);
 
-    namemapptr->state = STATE_ERROR;    /* We'll change this to DONE when we find the record. */
+    /* We'll change this to DONE when we find the record. */
+    namemapptr->state = STATE_ERROR;
+
     namemapptr->err = hdr->flags2 & DNS_FLAG2_ERR_MASK;
 
     /* If we remain in the error state, keep it cached for 30 seconds. */
@@ -885,15 +892,7 @@ newdata(void)
     }
   }
 
-  /* Discard all remaining questions */
-  for(; nquestions > 0; queryptr += 4, nquestions--) {
-    if(namemapptr
-       && !dns_name_isequal(queryptr, namemapptr->name, uip_appdata)) {
-      DEBUG_PRINTF("resolver: Question name doesn't look familiar...!\n");
-      return;
-    }
-    queryptr = skip_name(queryptr);
-  }
+  i = 0;
 
   /* Answer parsing loop */
   while(nanswers > 0) {
@@ -910,8 +909,8 @@ newdata(void)
     static char debug_name[40];
 
     decode_name(queryptr, debug_name, uip_appdata);
-    DEBUG_PRINTF("resolver: \"%s\", type %d, class %d, ttl %d, length %d\n",
-                 debug_name, uip_ntohs(ans->type),
+    DEBUG_PRINTF("resolver: Answer %d: \"%s\", type %d, class %d, ttl %d, length %d\n",
+                 ++i, debug_name, uip_ntohs(ans->type),
                  uip_ntohs(ans->class) & 0x7FFF,
                  (int)((uint32_t) uip_ntohs(ans->ttl[0]) << 16) | (uint32_t)
                  uip_ntohs(ans->ttl[1]), uip_ntohs(ans->len));
