@@ -139,6 +139,22 @@ strcasecmp(const char *s1, const char *s2)
 #define RESOLV_CONF_MAX_DOMAIN_NAME_SIZE 32
 #endif
 
+#ifdef RESOLV_CONF_AUTO_REMOVE_TRAILING_DOTS
+#define RESOLV_AUTO_REMOVE_TRAILING_DOTS RESOLV_CONF_AUTO_REMOVE_TRAILING_DOTS
+#else
+#define RESOLV_AUTO_REMOVE_TRAILING_DOTS RESOLV_CONF_SUPPORTS_MDNS
+#endif
+
+#ifdef RESOLV_CONF_VERIFY_ANSWER_NAMES
+#define RESOLV_VERIFY_ANSWER_NAMES RESOLV_CONF_VERIFY_ANSWER_NAMES
+#else
+#define RESOLV_VERIFY_ANSWER_NAMES RESOLV_CONF_SUPPORTS_MDNS
+#endif
+
+#if RESOLV_CONF_SUPPORTS_MDNS && !RESOLV_VERIFY_ANSWER_NAMES
+#error RESOLV_CONF_SUPPORTS_MDNS cannot be set without RESOLV_CONF_VERIFY_ANSWER_NAMES
+#endif
+
 #if !defined(CONTIKI_TARGET_NAME) && defined(BOARD)
 #define stringy2(x)		#x
 #define stringy(x)		stringy2(x)
@@ -162,6 +178,12 @@ strcasecmp(const char *s1, const char *s2)
 #define DNS_TYPE_SRV   33
 #define DNS_TYPE_ANY  255
 #define DNS_TYPE_NSEC  47
+
+#if UIP_CONF_IPV6
+#define NATIVE_DNS_TYPE DNS_TYPE_AAAA   /* IPv6 */
+#else
+#define NATIVE_DNS_TYPE DNS_TYPE_A      /* IPv4 */
+#endif
 
 #define DNS_CLASS_IN    1
 #define DNS_CLASS_ANY 255
@@ -239,11 +261,11 @@ struct namemap {
   uint8_t retries;
   uint8_t seqno;
   unsigned long expiration;
+  uip_ipaddr_t ipaddr;
   uint8_t err;
 #if RESOLV_CONF_SUPPORTS_MDNS
   uint8_t is_mdns:1, is_probe:1;
 #endif
-  uip_ipaddr_t ipaddr;
   char name[RESOLV_CONF_MAX_DOMAIN_NAME_SIZE + 1];
 };
 
@@ -271,12 +293,13 @@ enum {
   EVENT_NEW_SERVER = 0
 };
 
-#if RESOLV_CONF_SUPPORTS_MDNS
 /** \internal The DNS question message structure. */
 struct dns_question {
   uint16_t type;
   uint16_t class;
 };
+
+#if RESOLV_CONF_SUPPORTS_MDNS
 static char resolv_hostname[RESOLV_CONF_MAX_DOMAIN_NAME_SIZE + 1];
 
 enum {
@@ -303,6 +326,7 @@ PROCESS(mdns_probe_process, "mDNS probe");
 /* For removing trailing dots in resolv_query() and resolve_lookup2(). */
 static char dns_name_without_dots[RESOLV_CONF_MAX_DOMAIN_NAME_SIZE + 1];
 
+#if RESOLV_VERIFY_ANSWER_NAMES || VERBOSE_DEBUG
 /*---------------------------------------------------------------------------*/
 /** \internal
  * \brief Decodes a DNS name from the DNS format into the given string.
@@ -311,7 +335,7 @@ static char dns_name_without_dots[RESOLV_CONF_MAX_DOMAIN_NAME_SIZE + 1];
  * \note `dest` must point to a buffer with at least
  *       `RESOLV_CONF_MAX_DOMAIN_NAME_SIZE+1` bytes large.
  */
-static int
+static uint8_t
 decode_name(const unsigned char *query, char *dest,
             const unsigned char *packet)
 {
@@ -360,7 +384,7 @@ decode_name(const unsigned char *query, char *dest,
 /*---------------------------------------------------------------------------*/
 /** \internal
  */
-static int
+static uint8_t
 dns_name_isequal(const unsigned char *queryptr, const char *name,
                  const unsigned char *packet)
 {
@@ -397,6 +421,7 @@ dns_name_isequal(const unsigned char *queryptr, const char *name,
 
   return name[0] == 0;
 }
+#endif /* RESOLV_VERIFY_ANSWER_NAMES */
 /*---------------------------------------------------------------------------*/
 /** \internal
  */
@@ -494,13 +519,14 @@ mdns_write_announce_records(unsigned char *queryptr, uint8_t * count)
       if(!*count) {
         queryptr = encode_name(queryptr, resolv_hostname);
       } else {
+        /* Use name compression to refer back to the first name */
         *queryptr++ = 0xc0;
         *queryptr++ = sizeof(struct dns_hdr);
       }
       ans = (struct dns_answer *)queryptr;
 
-      *queryptr++ = (uint8_t) ((DNS_TYPE_AAAA) >> 8);
-      *queryptr++ = (uint8_t) ((DNS_TYPE_AAAA));
+      *queryptr++ = (uint8_t) ((NATIVE_DNS_TYPE) >> 8);
+      *queryptr++ = (uint8_t) ((NATIVE_DNS_TYPE));
 
       *queryptr++ = (uint8_t) ((DNS_CLASS_IN | 0x8000) >> 8);
       *queryptr++ = (uint8_t) ((DNS_CLASS_IN | 0x8000));
@@ -513,8 +539,7 @@ mdns_write_announce_records(unsigned char *queryptr, uint8_t * count)
       *queryptr++ = 0;
       *queryptr++ = sizeof(uip_ipaddr_t);
 
-      uip_ipaddr_copy((uip_ipaddr_t *) queryptr,
-                      &uip_ds6_if.addr_list[i].ipaddr);
+      uip_ipaddr_copy((uip_ipaddr_t*)queryptr, &uip_ds6_if.addr_list[i].ipaddr);
       queryptr += sizeof(uip_ipaddr_t);
       (*count)++;
     }
@@ -522,7 +547,7 @@ mdns_write_announce_records(unsigned char *queryptr, uint8_t * count)
 #else /* UIP_CONF_IPV6 */
   queryptr = encode_name(queryptr, resolv_hostname);
   ans = (struct dns_answer *)queryptr;
-  ans->type = UIP_HTONS(DNS_TYPE_A);
+  ans->type = UIP_HTONS(NATIVE_DNS_TYPE);
   ans->class = UIP_HTONS(DNS_CLASS_IN | 0x8000);
   ans->ttl[0] = 0;
   ans->ttl[1] = UIP_HTONS(120);
@@ -669,7 +694,7 @@ check_entries(void)
       hdr->flags1 = DNS_FLAG1_RD;
 #endif /* RESOLV_CONF_SUPPORTS_MDNS */
       hdr->numquestions = UIP_HTONS(1);
-      query = (char *)uip_appdata + sizeof(*hdr);
+      query = uip_appdata + sizeof(*hdr);
       query = encode_name(query, namemapptr->name);
 #if RESOLV_CONF_SUPPORTS_MDNS
       if(namemapptr->is_probe) {
@@ -678,13 +703,8 @@ check_entries(void)
       } else
 #endif /* RESOLV_CONF_SUPPORTS_MDNS */
       {
-#if UIP_CONF_IPV6
-        *query++ = (uint8_t) ((DNS_TYPE_AAAA) >> 8);
-        *query++ = (uint8_t) ((DNS_TYPE_AAAA));
-#else /* UIP_CONF_IPV6 */
-        *query++ = (uint8_t) ((DNS_TYPE_A) >> 8);
-        *query++ = (uint8_t) ((DNS_TYPE_A));
-#endif /* UIP_CONF_IPV6 */
+        *query++ = (uint8_t) ((NATIVE_DNS_TYPE) >> 8);
+        *query++ = (uint8_t) ((NATIVE_DNS_TYPE));
       }
       *query++ = (uint8_t) ((DNS_CLASS_IN) >> 8);
       *query++ = (uint8_t) ((DNS_CLASS_IN));
@@ -747,7 +767,7 @@ newdata(void)
 
   unsigned char *queryptr = (unsigned char *)hdr + sizeof(*hdr);
 
-  const bool is_request = ((hdr->flags1 & ~1) == 0) && (hdr->flags2 == 0);
+  const uint8_t is_request = ((hdr->flags1 & ~1) == 0) && (hdr->flags2 == 0);
 
   /* We only care about the question(s) and the answers. The authrr
    * and the extrarr are simply discarded.
@@ -792,15 +812,14 @@ newdata(void)
     static struct dns_question aligned;
     memcpy(&aligned, question, sizeof(aligned));
     question = &aligned;
-#endif /* __ARM__ */
+#endif /* !ARCH_DOESNT_NEED_ALIGNED_STRUCTS */
 
     DEBUG_PRINTF("resolver: Question %d: type=%d class=%d\n", ++i,
                  uip_htons(question->type), uip_htons(question->class));
 
     if(((uip_ntohs(question->class) & 0x7FFF) != DNS_CLASS_IN)
        || ((question->type != UIP_HTONS(DNS_TYPE_ANY))
-           && (question->type != UIP_HTONS(DNS_TYPE_AAAA))
-           && (question->type != UIP_HTONS(DNS_TYPE_A))
+           && (question->type != UIP_HTONS(NATIVE_DNS_TYPE))
        )) {
       /* Skip unrecognised records. */
       continue;
@@ -839,7 +858,7 @@ newdata(void)
        * but this should eventually converge to something reasonable.
        */
       if(nauthrr) {
-        start_name_collision_check(CLOCK_SECOND * 1.5);
+        start_name_collision_check(CLOCK_SECOND);
       }
     }
 #endif /* RESOLV_CONF_SUPPORTS_MDNS */
@@ -900,14 +919,12 @@ newdata(void)
 
 #if !ARCH_DOESNT_NEED_ALIGNED_STRUCTS
     static struct dns_answer aligned;
-
     memcpy(&aligned, ans, sizeof(aligned));
     ans = &aligned;
-#endif /* __ARM__ */
+#endif /* !ARCH_DOESNT_NEED_ALIGNED_STRUCTS */
 
 #if VERBOSE_DEBUG
     static char debug_name[40];
-
     decode_name(queryptr, debug_name, uip_appdata);
     DEBUG_PRINTF("resolver: Answer %d: \"%s\", type %d, class %d, ttl %d, length %d\n",
                  ++i, debug_name, uip_ntohs(ans->type),
@@ -924,15 +941,9 @@ newdata(void)
       goto skip_to_next_answer;
     }
 
-#if UIP_CONF_IPV6
-    if(ans->type != UIP_HTONS(DNS_TYPE_AAAA)) {
+    if(ans->type != UIP_HTONS(NATIVE_DNS_TYPE)) {
       goto skip_to_next_answer;
     }
-#else /* UIP_CONF_IPV6 */
-    if(ans->type != UIP_HTONS(DNS_TYPE_A)) {
-      goto skip_to_next_answer;
-    }
-#endif /* UIP_CONF_IPV6 */
 
 #if RESOLV_CONF_SUPPORTS_MDNS
     if(UIP_UDP_BUF->srcport == UIP_HTONS(MDNS_PORT)
@@ -985,11 +996,13 @@ newdata(void)
       nanswers = 1;
     }
 
+#if RESOLV_VERIFY_ANSWER_NAMES
     if(namemapptr
        && !dns_name_isequal(queryptr, namemapptr->name, uip_appdata)) {
       DEBUG_PRINTF("resolver: Answer name doesn't match question...!\n");
       goto skip_to_next_answer;
     }
+#endif
 
     DEBUG_PRINTF("resolver: Answer for \"%s\" is usable.\n",
                  namemapptr->name);
@@ -1098,15 +1111,13 @@ PROCESS_THREAD(resolv_process, ev, data)
   resolv_conn->rport = 0;
 
 #if RESOLV_CONF_SUPPORTS_MDNS
-  PRINTF("resolver: Supports MDNS name resolution.\n");
-#endif
-
-#if RESOLV_CONF_SUPPORTS_MDNS
-  PRINTF("resolver: Supports MDNS responder.\n");
+  PRINTF("resolver: Supports MDNS.\n");
   uip_udp_bind(resolv_conn, UIP_HTONS(MDNS_PORT));
 
 #if UIP_CONF_IPV6
   uip_ds6_maddr_add(&resolv_mdns_addr);
+#else
+  /* TODO: Is there anything we need to do here for IPv4 multicast? */
 #endif
 
   resolv_set_hostname(CONTIKI_CONF_DEFAULT_HOSTNAME);
@@ -1161,6 +1172,25 @@ PROCESS_THREAD(resolv_process, ev, data)
 
   PROCESS_END();
 }
+
+/*---------------------------------------------------------------------------*/
+#if RESOLV_AUTO_REMOVE_TRAILING_DOTS
+static const char*
+remove_trailing_dots(const char* name) {
+  size_t len = strlen(name);
+
+  if(name[len - 1] == '.') {
+    strncpy(dns_name_without_dots, name, sizeof(dns_name_without_dots));
+    while(len && (dns_name_without_dots[len - 1] == '.')) {
+      dns_name_without_dots[--len] = 0;
+    }
+    name = dns_name_without_dots;
+  }
+  return name;
+}
+#else /* RESOLV_AUTO_REMOVE_TRAILING_DOTS */
+#define remove_trailing_dots(x)   (x)
+#endif /* RESOLV_AUTO_REMOVE_TRAILING_DOTS */
 /*---------------------------------------------------------------------------*/
 /**
  * Queues a name so that a question for the name will be sent out.
@@ -1179,17 +1209,7 @@ resolv_query(const char *name)
   lseq = lseqi = 0;
 
   /* Remove trailing dots, if present. */
-  {
-    size_t len = strlen(name);
-
-    if(name[len - 1] == '.') {
-      strncpy(dns_name_without_dots, name, sizeof(dns_name_without_dots));
-      while(len && (dns_name_without_dots[len - 1] == '.')) {
-        dns_name_without_dots[--len] = 0;
-      }
-      name = dns_name_without_dots;
-    }
-  }
+  name = remove_trailing_dots(name);
 
   for(i = 0; i < RESOLV_ENTRIES; ++i) {
     nameptr = &names[i];
@@ -1262,26 +1282,16 @@ resolv_lookup(const char *name, uip_ipaddr_t ** ipaddr)
   struct namemap *nameptr;
 
   /* Remove trailing dots, if present. */
-  {
-    size_t len = strlen(name);
-
-    if(name[len - 1] == '.') {
-      strncpy(dns_name_without_dots, name, sizeof(dns_name_without_dots) - 1);
-      name = dns_name_without_dots;
-      while(len && (dns_name_without_dots[len - 1] == '.')) {
-        dns_name_without_dots[--len] = 0;
-      }
-    }
-  }
+  name = remove_trailing_dots(name);
 
 #if UIP_CONF_LOOPBACK_INTERFACE
   if(strcmp(name, "localhost")) {
     static uip_ipaddr_t loopback =
 #if UIP_CONF_IPV6
-  { { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 } };
+    { { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 } };
 #else /* UIP_CONF_IPV6 */
-  { { 127, 0, 0, 1 } };
+    { { 127, 0, 0, 1 } };
 #endif /* UIP_CONF_IPV6 */
     if(ipaddr) {
       *ipaddr = &loopback;
