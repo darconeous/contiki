@@ -68,7 +68,7 @@
 #include "lib/random.h"
 
 #ifndef DEBUG
-#define DEBUG defined(CONTIKI_TARGET_COOJA)
+#define DEBUG CONTIKI_TARGET_COOJA
 #endif
 
 #if UIP_UDP
@@ -272,7 +272,7 @@ struct namemap {
   uip_ipaddr_t ipaddr;
   uint8_t err;
 #if RESOLV_CONF_SUPPORTS_MDNS
-  uint8_t is_mdns:1, is_probe:1;
+  int is_mdns:1, is_probe:1;
 #endif
   char name[RESOLV_CONF_MAX_DOMAIN_NAME_SIZE + 1];
 };
