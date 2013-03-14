@@ -707,7 +707,7 @@ check_entries(void)
       hdr->flags1 = DNS_FLAG1_RD;
 #endif /* RESOLV_CONF_SUPPORTS_MDNS */
       hdr->numquestions = UIP_HTONS(1);
-      query = uip_appdata + sizeof(*hdr);
+      query = (uint8_t*)uip_appdata + sizeof(*hdr);
       query = encode_name(query, namemapptr->name);
 #if RESOLV_CONF_SUPPORTS_MDNS
       if(namemapptr->is_probe) {
@@ -807,15 +807,6 @@ newdata(void)
       queryptr = skip_name(queryptr) + sizeof(struct dns_question),
       nquestions--
   ) {
-
-    if(!is_request) {
-      /* If this isn't a request, we don't need to bother
-       * looking at the individual questions. For the most
-       * part, this loop to just used to skip past them.
-       */
-      continue;
-    }
-
 #if RESOLV_CONF_SUPPORTS_MDNS
     struct dns_question *question = (struct dns_question *)skip_name(queryptr);
 
@@ -824,6 +815,14 @@ newdata(void)
     memcpy(&aligned, question, sizeof(aligned));
     question = &aligned;
 #endif /* !ARCH_DOESNT_NEED_ALIGNED_STRUCTS */
+
+    if(!is_request) {
+      /* If this isn't a request, we don't need to bother
+       * looking at the individual questions. For the most
+       * part, this loop to just used to skip past them.
+       */
+      continue;
+    }
 
     DEBUG_PRINTF("resolver: Question %d: type=%d class=%d\n", ++i,
                  uip_htons(question->type), uip_htons(question->class));
@@ -931,9 +930,11 @@ newdata(void)
     ans = (struct dns_answer *)skip_name(queryptr);
 
 #if !ARCH_DOESNT_NEED_ALIGNED_STRUCTS
-    static struct dns_answer aligned;
-    memcpy(&aligned, ans, sizeof(aligned));
-    ans = &aligned;
+    {
+      static struct dns_answer aligned;
+      memcpy(&aligned, ans, sizeof(aligned));
+      ans = &aligned;
+    }
 #endif /* !ARCH_DOESNT_NEED_ALIGNED_STRUCTS */
 
 #if VERBOSE_DEBUG
