@@ -151,6 +151,12 @@ strcasecmp(const char *s1, const char *s2)
 #define RESOLV_VERIFY_ANSWER_NAMES RESOLV_CONF_SUPPORTS_MDNS
 #endif
 
+#ifdef RESOLV_CONF_SUPPORTS_RECORD_EXPIRATION
+#define RESOLV_SUPPORTS_RECORD_EXPIRATION RESOLV_CONF_SUPPORTS_RECORD_EXPIRATION
+#else
+#define RESOLV_SUPPORTS_RECORD_EXPIRATION 1
+#endif
+
 #if RESOLV_CONF_SUPPORTS_MDNS && !RESOLV_VERIFY_ANSWER_NAMES
 #error RESOLV_CONF_SUPPORTS_MDNS cannot be set without RESOLV_CONF_VERIFY_ANSWER_NAMES
 #endif
@@ -260,7 +266,9 @@ struct namemap {
   uint8_t tmr;
   uint8_t retries;
   uint8_t seqno;
+#if RESOLV_SUPPORTS_RECORD_EXPIRATION
   unsigned long expiration;
+#endif /* RESOLV_SUPPORTS_RECORD_EXPIRATION */
   uip_ipaddr_t ipaddr;
   uint8_t err;
 #if RESOLV_CONF_SUPPORTS_MDNS
@@ -655,8 +663,10 @@ check_entries(void)
             /* STATE_ERROR basically means "not found". */
             namemapptr->state = STATE_ERROR;
 
+#if RESOLV_SUPPORTS_RECORD_EXPIRATION
             /* Keep the "not found" error valid for 30 seconds */
             namemapptr->expiration = clock_seconds() + 30;
+#endif /* RESOLV_SUPPORTS_RECORD_EXPIRATION */
 
             resolv_found(namemapptr->name, NULL);
             continue;
@@ -710,7 +720,6 @@ check_entries(void)
       *query++ = (uint8_t) ((DNS_CLASS_IN));
 #if RESOLV_CONF_SUPPORTS_MDNS
       if(namemapptr->is_mdns) {
-#if RESOLV_CONF_SUPPORTS_MDNS
         if(namemapptr->is_probe) {
           /* This is our conflict detection request.
            * In order to be in compliance with the MDNS
@@ -722,7 +731,6 @@ check_entries(void)
           query = mdns_write_announce_records(query, &count);
           hdr->numauthrr = UIP_HTONS(count);
         }
-#endif /* RESOLV_CONF_SUPPORTS_MDNS */
         uip_udp_packet_sendto(resolv_conn, uip_appdata,
                               (query - (uint8_t *) uip_appdata),
                               &resolv_mdns_addr, UIP_HTONS(MDNS_PORT));
@@ -900,8 +908,10 @@ newdata(void)
 
     namemapptr->err = hdr->flags2 & DNS_FLAG2_ERR_MASK;
 
+#if RESOLV_SUPPORTS_RECORD_EXPIRATION
     /* If we remain in the error state, keep it cached for 30 seconds. */
     namemapptr->expiration = clock_seconds() + 30;
+#endif /* RESOLV_SUPPORTS_RECORD_EXPIRATION */
 
     /* Check for error. If so, call callback to inform. */
     if(namemapptr->err != 0) {
@@ -960,9 +970,11 @@ newdata(void)
         if(dns_name_isequal(queryptr, namemapptr->name, uip_appdata)) {
           break;
         }
-        if((namemapptr->state == STATE_UNUSED) ||
-           (namemapptr->state == STATE_DONE &&
-           clock_seconds() > namemapptr->expiration)) {
+        if((namemapptr->state == STATE_UNUSED)
+#if RESOLV_SUPPORTS_RECORD_EXPIRATION
+          || (namemapptr->state == STATE_DONE && clock_seconds() > namemapptr->expiration)
+#endif /* RESOLV_SUPPORTS_RECORD_EXPIRATION */
+        ) {
           available_i = i;
         }
       }
@@ -1008,8 +1020,10 @@ newdata(void)
                  namemapptr->name);
 
     namemapptr->state = STATE_DONE;
+#if RESOLV_SUPPORTS_RECORD_EXPIRATION
     namemapptr->expiration = ans->ttl[1] + (ans->ttl[0] << 8);
     namemapptr->expiration += clock_seconds();
+#endif /* RESOLV_SUPPORTS_RECORD_EXPIRATION */
 
     uip_ipaddr_copy(&namemapptr->ipaddr, (uip_ipaddr_t *) ans->ipaddr);
 
@@ -1216,9 +1230,11 @@ resolv_query(const char *name)
     if(0 == strcasecmp(nameptr->name, name)) {
       break;
     }
-    if((nameptr->state == STATE_UNUSED) ||
-       (nameptr->state == STATE_DONE &&
-       clock_seconds() > nameptr->expiration)) {
+    if((nameptr->state == STATE_UNUSED)
+#if RESOLV_SUPPORTS_RECORD_EXPIRATION
+      || (nameptr->state == STATE_DONE && clock_seconds() > nameptr->expiration)
+#endif /* RESOLV_SUPPORTS_RECORD_EXPIRATION */
+    ) {
       lseqi = i;
       lseq = 255;
     } else if(seqno - nameptr->seqno > lseq) {
@@ -1307,11 +1323,12 @@ resolv_lookup(const char *name, uip_ipaddr_t ** ipaddr)
     if(strcasecmp(name, nameptr->name) == 0) {
       switch (nameptr->state) {
       case STATE_DONE:
+        ret = RESOLV_STATUS_CACHED;
+#if RESOLV_SUPPORTS_RECORD_EXPIRATION
         if(clock_seconds() > nameptr->expiration) {
           ret = RESOLV_STATUS_EXPIRED;
-        } else {
-          ret = RESOLV_STATUS_CACHED;
         }
+#endif /* RESOLV_SUPPORTS_RECORD_EXPIRATION */
         break;
       case STATE_NEW:
       case STATE_ASKING:
@@ -1319,9 +1336,12 @@ resolv_lookup(const char *name, uip_ipaddr_t ** ipaddr)
         break;
       /* Almost certainly a not-found error from server */
       case STATE_ERROR:
-        if(clock_seconds() >= nameptr->expiration) {
-          ret = RESOLV_STATUS_NOT_FOUND;
+        ret = RESOLV_STATUS_NOT_FOUND;
+#if RESOLV_SUPPORTS_RECORD_EXPIRATION
+        if(clock_seconds() > nameptr->expiration) {
+          ret = RESOLV_STATUS_UNCACHED;
         }
+#endif /* RESOLV_SUPPORTS_RECORD_EXPIRATION */
         break;
       }
 
