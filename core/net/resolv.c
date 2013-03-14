@@ -308,6 +308,9 @@ struct dns_question {
 };
 
 #if RESOLV_CONF_SUPPORTS_MDNS
+/** \internal Used for appending digits to hostnames for collisions. */
+static uint8_t resolv_collision_count;
+
 static char resolv_hostname[RESOLV_CONF_MAX_DOMAIN_NAME_SIZE + 1];
 
 enum {
@@ -1053,6 +1056,8 @@ resolv_set_hostname(const char *hostname)
 
   PRINTF("resolver: hostname changed to \"%s\"\n", resolv_hostname);
 
+  resolv_collision_count = 0;
+
   start_name_collision_check(0);
 }
 /*---------------------------------------------------------------------------*/
@@ -1429,6 +1434,8 @@ resolv_found(char *name, uip_ipaddr_t * ipaddr)
        * We must now rename ourselves.
        */
       PRINTF("resolver: Name collision detected for \"%s\".\n", name);
+
+      resolv_collision_count++;
 
       /* Remove the ".local" suffix. */
       resolv_hostname[strlen(resolv_hostname) - 6] = 0;
