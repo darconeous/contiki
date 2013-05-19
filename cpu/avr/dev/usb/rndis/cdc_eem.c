@@ -6,7 +6,6 @@
 #include "rndis/rndis_task.h"
 #include "rndis/rndis_protocol.h"
 #include "uip.h"
-#include "sicslow_ethernet.h"
 #include <stdio.h>
 
 #include <avr/pgmspace.h>

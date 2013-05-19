@@ -7,7 +7,6 @@
 #include "rndis/rndis_task.h"
 #include "rndis/rndis_protocol.h"
 #include "uip.h"
-#include "sicslow_ethernet.h"
 #include <stdio.h>
 #if RF230BB
 #include "rf230bb.h"

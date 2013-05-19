@@ -69,7 +69,6 @@ RNDIS Status Information:
 #include "rndis/rndis_task.h"
 #include "uip.h"
 #include "serial/uart_usb_lib.h"
-#include "sicslow_ethernet.h"
 #include <avr/pgmspace.h>
 #include <string.h>
 
@@ -602,6 +601,7 @@ void rndis_query_process(void)
 
 void
 rndis_handle_config_parm(const char* parmname,const uint8_t* parmvalue,size_t parmlength) {
+/*
 	if (strncmp_P(parmname, PSTR("rawmode"), 7) == 0) {
 		if (parmvalue[0] == '0') {
 			usbstick_mode.raw = 0;
@@ -609,7 +609,7 @@ rndis_handle_config_parm(const char* parmname,const uint8_t* parmvalue,size_t pa
 			usbstick_mode.raw = 1;
 		}
 	}
-
+*/
 }
 
 /**

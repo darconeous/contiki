@@ -56,7 +56,6 @@
 #include "rf230bb.h"
 #endif
 #include "uip.h"
-#include "sicslow_ethernet.h"
 #include <stdio.h>
 
 #include <avr/pgmspace.h>

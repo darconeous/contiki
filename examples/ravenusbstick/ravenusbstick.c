@@ -34,5 +34,12 @@
 #include "contiki.h"
 #include <stdio.h>
 #include "cdc_task.h"
+#include "net/resolv.h"
 
-AUTOSTART_PROCESSES(&cdc_process);
+AUTOSTART_PROCESSES(
+  &cdc_process,
+#if UIP_CONF_IPV6_RPL && UIP_UDP
+  &resolv_process,
+#endif
+  NULL
+);
