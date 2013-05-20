@@ -255,6 +255,8 @@ rimeaddr_t frag_sender;
 /** Reassembly %process %timer. */
 static struct timer reass_timer;
 
+uint16_t default_network_id = 0xABCD;
+
 /** @} */
 #else /* SICSLOWPAN_CONF_FRAG */
 /** The buffer used for the 6lowpan processing is uip_buf.
@@ -285,7 +287,8 @@ set_packet_attrs()
 {
   int c = 0;
   /* set protocol in NETWORK_ID */
-  packetbuf_set_attr(PACKETBUF_ATTR_NETWORK_ID, UIP_IP_BUF->proto);
+//  packetbuf_set_attr(PACKETBUF_ATTR_NETWORK_ID, UIP_IP_BUF->proto);
+  packetbuf_set_attr(PACKETBUF_ATTR_NETWORK_ID, default_network_id);
 
   /* assign values to the channel attribute (port or type + code) */
   if(UIP_IP_BUF->proto == UIP_PROTO_UDP) {
@@ -1326,6 +1329,8 @@ packet_sent(void *ptr, int status, int transmissions)
 static void
 send_packet(rimeaddr_t *dest)
 {
+  packetbuf_set_attr(PACKETBUF_ATTR_NETWORK_ID, default_network_id);
+
   /* Set the link layer destination address for the packet as a
    * packetbuf attribute. The MAC layer can access the destination
    * address with the function packetbuf_addr(PACKETBUF_ADDR_RECEIVER).

@@ -269,6 +269,10 @@ uint8_t i;
   memcpy(&uip_lladdr.addr, &addr.u8, sizeof(rimeaddr_t));
   rimeaddr_set_node_addr(&addr);  
   rf230_set_pan_addr(params_get_panid(),params_get_panaddr(),(uint8_t *)&addr.u8);
+  {
+    extern uint16_t default_network_id;
+    default_network_id = rf230_get_pan_id();
+  }
 #elif WITH_NODE_ID
   node_id=get_panaddr_from_eeprom();
   addr.u8[1]=node_id&0xff;

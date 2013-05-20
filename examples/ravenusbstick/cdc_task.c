@@ -210,6 +210,7 @@ void menu_print(void)
 		PRINTF_P(PSTR("*  n        Set to network mode   *\n\r"));
 		PRINTF_P(PSTR("*  c        Set RF channel        *\n\r"));
 		PRINTF_P(PSTR("*  p        Set RF power          *\n\r"));
+		PRINTF_P(PSTR("*  i        Set PAN-ID            *\n\r"));
 		PRINTF_P(PSTR("*  6        Toggle 6lowpan        *\n\r"));
 		PRINTF_P(PSTR("*  r        Toggle raw mode       *\n\r"));
 #if USB_CONF_RS232
@@ -274,10 +275,11 @@ void menu_process(char c)
 	{
 		normal,
 		channel,
+		panid,
         txpower
 	} menustate = normal;
 	
-	static char channel_string[3];
+	static char channel_string[5];
 	static uint8_t channel_string_i;// = 0;
 	
 	int tempchannel;
@@ -413,6 +415,79 @@ void menu_process(char c)
 				putc(c, stdout);
 				//uart_usb_putchar(c);
 				
+				channel_string[channel_string_i] = c;
+				channel_string_i++;
+				break;
+
+			default:
+				break;
+		}
+	} else if (menustate == panid) {
+		switch(c) {
+			case '\r':
+			case '\n':
+				if (channel_string_i)  {
+                                        extern uint16_t default_network_id;
+                                        channel_string[channel_string_i] = 0;
+					default_network_id = strtol(channel_string,NULL,16);
+			PRINTF_P(PSTR(" ")); //for some reason needs a print here to clear the string input...
+						rf230_set_pan_id(default_network_id);
+#if CONTIKI_CONF_SETTINGS_MANAGER
+						if(settings_set_uint16(SETTINGS_KEY_PAN_ID, default_network_id)==SETTINGS_STATUS_OK) {
+							PRINTF_P(PSTR("\n\rPAN-ID changed to 0x%04X, and stored in EEPROM.\n\r"),default_network_id);
+						} else {
+							PRINTF_P(PSTR("\n\rPAN-ID changed to 0x%04X, but unable to store in EEPROM!\n\r"),default_network_id);
+						}
+#else
+						PRINTF_P(PSTR("\n\rPAN-ID changed to %d.\n\r"),default_network_id);
+#endif
+				} else {
+					PRINTF_P(PSTR("\n\rPAN-ID unchanged.\n\r"));
+				}
+
+				menustate = normal;
+				break;
+
+			case '\b':
+
+				if (channel_string_i) {
+					channel_string_i--;
+					PRINTF_P(PSTR("\b \b"));
+				}
+				break;
+
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+			case 'a':
+			case 'b':
+			case 'c':
+			case 'd':
+			case 'e':
+			case 'f':
+			case 'A':
+			case 'B':
+			case 'C':
+			case 'D':
+			case 'E':
+			case 'F':
+				if (channel_string_i > 3) {
+					// This time the user has gone too far.
+					// Beep at them.
+					putc('\a', stdout);
+					//uart_usb_putchar('\a');
+					break;
+				}
+				putc(c, stdout);
+				//uart_usb_putchar(c);
+
 				channel_string[channel_string_i] = c;
 				channel_string_i++;
 				break;
@@ -601,6 +676,16 @@ extern void jackdaw_choose_rdc_driver(uint8_t i);
 				menustate = txpower;
 				channel_string_i = 0;
 				break;
+			case 'i':
+#if RF230BB
+				PRINTF_P(PSTR("\nSelect PAN-ID [%04X]: "), rf230_get_pan_id());
+#else
+//				PRINTF_P(PSTR("\nSelect transmit power (0=+3dBm 15=-17.2dBm) [%d]: "), ?_power());;
+#endif
+				menustate = panid;
+				channel_string_i = 0;
+				break;
+
 
 
 #if UIP_CONF_IPV6_RPL

@@ -1233,6 +1233,24 @@ rf230_listen_channel(uint8_t c)
 }
 /*---------------------------------------------------------------------------*/
 void
+rf230_set_pan_id(uint16_t panid)
+{
+  PRINTF("rf230: PAN=%x\n",pan);
+
+  uint8_t abyte;
+  abyte = panid & 0xFF;
+  hal_register_write(RG_PAN_ID_0,abyte);
+  abyte = (panid >> 8*1) & 0xFF;
+  hal_register_write(RG_PAN_ID_1, abyte);
+}
+/*---------------------------------------------------------------------------*/
+uint16_t
+rf230_get_pan_id(void)
+{
+  return hal_register_read(RG_PAN_ID_0) + (hal_register_read(RG_PAN_ID_1)<<8);
+}
+/*---------------------------------------------------------------------------*/
+void
 rf230_set_pan_addr(unsigned pan,
                     unsigned addr,
                     const uint8_t ieee_addr[8])
