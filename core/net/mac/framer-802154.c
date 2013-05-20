@@ -135,6 +135,7 @@ create(void)
     params.fcf.src_addr_mode = FRAME802154_LONGADDRMODE;
   }
   params.dest_pid = mac_dst_pan_id;
+  params.dest_pid = packetbuf_attr(PACKETBUF_ATTR_NETWORK_ID);
 
   /*
    *  If the output address is NULL in the Rime buf, then it is broadcast
@@ -159,6 +160,7 @@ create(void)
 
   /* Set the source PAN ID to the global variable. */
   params.src_pid = mac_src_pan_id;
+  params.src_pid = packetbuf_attr(PACKETBUF_ATTR_NETWORK_ID);
 
   /*
    * Set up the source address using only the long address mode for
