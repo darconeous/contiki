@@ -1451,23 +1451,22 @@ uip_process(uint8_t flag)
      UDP/IP headers, but let the UDP application do all the hard
      work. If the application sets uip_slen, it has a packet to
      send. */
+
+  uip_len -= UIP_IPUDPH_LEN;
 #if UIP_UDP_CHECKSUMS
-  uip_len = uip_len - UIP_IPUDPH_LEN;
   uip_appdata = &uip_buf[UIP_IPUDPH_LEN + UIP_LLH_LEN];
   /* XXX hack: UDP/IPv6 receivers should drop packets with UDP
      checksum 0. Here, we explicitly receive UDP packets with checksum
      0. This is to be able to debug code that for one reason or
      another miscomputes UDP checksums. The reception of zero UDP
      checksums should be turned into a configration option. */
-  if(UIP_UDP_BUF->udpchksum != 0 && uip_udpchksum() != 0xffff) {
+  if((UIP_UDP_BUF->udpchksum != 0) && (uip_udpchksum() != 0xffff)) {
     UIP_STAT(++uip_stat.udp.drop);
     UIP_STAT(++uip_stat.udp.chkerr);
     PRINTF("udp: bad checksum 0x%04x 0x%04x\n", UIP_UDP_BUF->udpchksum,
            uip_udpchksum());
     goto drop;
   }
-#else /* UIP_UDP_CHECKSUMS */
-  uip_len = uip_len - UIP_IPUDPH_LEN;
 #endif /* UIP_UDP_CHECKSUMS */
 
   /* Make sure that the UDP destination port number is not zero. */
@@ -1516,11 +1515,10 @@ uip_process(uint8_t flag)
   UIP_UDP_APPCALL();
 
  udp_send:
-  PRINTF("In udp_send\n");
-
   if(uip_slen == 0) {
     goto drop;
   }
+  PRINTF("In udp_send\n");
   uip_len = uip_slen + UIP_IPUDPH_LEN;
 
   /* For IPv6, the IP length field does not include the IPv6 IP header
