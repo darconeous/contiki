@@ -32,7 +32,7 @@
 #
 
 PRGS = about calc dhcp directory email ftp irc netconf processes shell \
-       telnet telnetd twitter webserver www
+       telnet http-post-auth telnetd webserver www
 DSCS = about calc dhcp email ftp irc netconf processes shell telnet \
        telnetd webserver
 all: contiki-main $(PRGS:=.prg) $(DSCS:=.dsc)
@@ -56,9 +56,6 @@ override telnetd_src = telnetd.c telnetd-gui.c memb.c \
 # Use webserver.c instead of webserver-nogui.c to get CTK support
 override webserver_src = webserver.c httpd.c http-strings.c psock.c \
 			 memb.c httpd-fs.c httpd-cgi.c
-
-# Use use psock.c locally
-override twitter_src = twitter.c psock.c
 
 PLATFORM_BUILD = 1
 
