@@ -35,7 +35,7 @@ PRGS = about calc dhcp directory email ftp irc netconf processes shell \
        telnet http-post-auth telnetd webserver www
 DSCS = about calc dhcp email ftp irc netconf processes shell telnet \
        telnetd webserver
-all: contiki-main $(PRGS:=.prg) $(DSCS:=.dsc)
+all: contiki-main-platform $(PRGS:=.prg) $(DSCS:=.dsc)
 
 appname = ${subst processes,process-list,${subst www,webbrowser,$(1)}}
 
