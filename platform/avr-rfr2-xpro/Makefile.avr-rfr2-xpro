@@ -1,0 +1,24 @@
+CONTIKI_TARGET_DIRS = . apps net loader
+
+CONTIKI_CORE=contiki-main
+CONTIKI_TARGET_MAIN = ${CONTIKI_CORE}.o
+CONTIKI_TARGET_SOURCEFILES += contiki-main.c rng.c
+
+CONTIKI_TARGET_SOURCEFILES += button-sensor.c sensors.c
+
+CONTIKIAVR=$(CONTIKI)/cpu/avr
+CONTIKIBOARD=.
+
+F_CPU=16000000
+
+CONTIKI_PLAT_DEFS = -DF_CPU=$(F_CPU)UL -DAUTO_CRC_PADDING=2
+
+MCU=atmega256rfr2
+
+AVRDUDE_PROGRAMMER?=jtag2
+AVRDUDE_PORT?=usb
+AVRDUDE_OPTIONS?=-V
+AVRDUDE_MCU?=$(MCU)
+
+include $(CONTIKIAVR)/Makefile.avr
+include $(CONTIKIAVR)/radio/Makefile.radio
