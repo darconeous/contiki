@@ -42,8 +42,8 @@
 #define __CONTIKI_CONF_H__
 
 /* Platform name, type, and MCU clock rate */
-#define PLATFORM_NAME  "RFA1"
-#define PLATFORM_TYPE  ATMEGA128RFA1
+#define PLATFORM_NAME  "RFR2"
+#define PLATFORM_TYPE  ATMEGA256RFR2
 #ifndef F_CPU
 #define F_CPU          8000000UL
 #endif
@@ -117,6 +117,9 @@ typedef unsigned short uip_stats_t;
 /* Debugflow macro, useful for tracing path through mac and radio interrupts */
 //#define DEBUGFLOWSIZE 128
 
+#ifndef UIP_CONF_IPV6
+#define UIP_CONF_IPV6 1
+#endif
 
 /* Define MAX_*X_POWER to reduce tx power and ignore weak rx packets for testing a miniature multihop network.
  * Leave undefined for full power and sensitivity.

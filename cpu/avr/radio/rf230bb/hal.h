@@ -145,6 +145,11 @@
 #   define SLPTRPORT  TRXPR
 #   define SLPTRPIN   1
 
+#elif PLATFORM_TYPE == ATMEGA256RFR2
+/* ATmega1281 with internal AT86RF231 radio...? TODO: VERIFY! */
+#   define SLPTRPORT  TRXPR
+#   define SLPTRPIN   1
+
 #elif CONTIKI_TARGET_MULLE
 /* mulle 5.2 (TODO: move to platform specific) */
 #   define SSPORT     3
@@ -380,7 +385,7 @@ void hal_subregister_write( uint16_t address, uint8_t mask, uint8_t position,
 //#define hal_subregister_read1( address, mask, position ) (address&mask)>>position
 //#define hal_subregister_write( address, mask, position, value ) address=(address<<position)&mask
 #else
-uint8_t hal_register_read( uint8_t address );
+int8_t hal_register_read( uint8_t address );
 void hal_register_write( uint8_t address, uint8_t value );
 uint8_t hal_subregister_read( uint8_t address, uint8_t mask, uint8_t position );
 void hal_subregister_write( uint8_t address, uint8_t mask, uint8_t position,

@@ -17,9 +17,10 @@
 
 /* delay_us uses floating point which includes (in some avr-gcc's) a 256 byte __clz_tab in the RAM through the .data section. */
 /* _delay_loop_1 avoids this, it is 3 CPU cycles per loop, 375ns @ 8MHz */
-//#define TEMPORAL_AGITATION()		do { static uint8_t agitator; agitator*=97; agitator+=101; _delay_us(agitator>>1); } while (0);
 #define TEMPORAL_AGITATION()		do { static uint8_t agitator; agitator*=97; agitator+=101; _delay_loop_1(agitator>>1); } while (0);
 
+
+#define RNG_CONF_USE_ADC 1
 
 // -------------------------------------------------------------------------
 #if RNG_CONF_USE_ADC
@@ -29,8 +30,8 @@
 **
 **	TODO: Run some randomness tests on the output of this RNG!
 */
-
 #define BITS_TO_SHIFT		9
+
 
 #define ADC_CHAN_ADC1 ((0<<MUX4)|(0<<MUX3)|(0<<MUX2)|(0<<MUX1)|(1<<MUX0))
 #define ADC_CHAN_BAND_GAP ((1<<MUX4)|(1<<MUX3)|(1<<MUX2)|(1<<MUX1)|(0<<MUX0))
