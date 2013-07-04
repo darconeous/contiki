@@ -50,6 +50,12 @@
 
 #include <stdint.h>
 
+#include <avr/eeprom.h>
+
+/* Skip the last eight bytes of the EEPROM, to leave room for things
+ * like the avrdude erase count and bootloader signaling. */
+#define EEPROM_CONF_SIZE		((E2END + 1) - 8)
+
 /* The AVR tick interrupt usually is done with an 8 bit counter around 128 Hz.
  * 125 Hz needs slightly more overhead during the interrupt, as does a 32 bit
  * clock_time_t.
@@ -109,6 +115,8 @@ typedef unsigned long off_t;
 /* Packet statistics */
 typedef unsigned short uip_stats_t;
 #define UIP_STATISTICS            0
+
+#define UIP_CONF_IPV6             1
 
 /* Available watchdog timeouts depend on mcu. Default is WDTO_2S. -1 Disables the watchdog. */
 /* AVR Studio simulator tends to reboot due to clocking the WD 8 times too fast */

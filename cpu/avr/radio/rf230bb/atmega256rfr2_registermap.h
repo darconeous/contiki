@@ -32,11 +32,11 @@
   POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef PHY128RFA1_REGISTERMAP_EXTERNAL_H
-#define PHY128RFA1_REGISTERMAP_EXTERNAL_H
+#ifndef PHY256RFR2_REGISTERMAP_EXTERNAL_H
+#define PHY256RFR2_REGISTERMAP_EXTERNAL_H
 
 /* RF230 register access is through SPI which transfers 8 bits address/8 bits data.
- * ATmega128rfa1 registers are defined in I/O space, e.g. in gcc /include/avr/iom128rfa1.h
+ * ATmega256rfr2 registers are defined in I/O space, e.g. in gcc /include/avr/iom256rfr2.h
  * A typical definition is #define TRX_STATUS _SFR_MEM8(0x141)
  * Registers can be read with a macro, but the args for subregisters don't expand properly so the actual address
  * is used with explicit _SFR_MEM8 in the subregister read/write routines.
@@ -392,4 +392,4 @@
 /** Access parameters for sub-register CSMA_SEED_1 in register @ref RG_CSMA_SEED_1 */
 #define SR_CSMA_SEED_1               0x2e, 0x07, 0
 #endif
-#endif /* PHY128RFA1_REGISTERMAP_EXTERNAL_H */
+#endif /* PHY256RFR2_REGISTERMAP_EXTERNAL_H */

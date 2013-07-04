@@ -52,9 +52,9 @@
 
 #include <avr/eeprom.h>
 
-/* Skip the last four bytes of the EEPROM, to leave room for things
+/* Skip the last five bytes of the EEPROM, to leave room for things
  * like the avrdude erase count and bootloader signaling. */
-#define EEPROM_CONF_SIZE		((E2END + 1) - 4)
+#define EEPROM_CONF_SIZE		((E2END + 1) - 8)
 
 /* MCU_CONF_LOW_WEAR will remove the signature and eeprom from the .elf file */
 /* This reduces reprogramming wear during development */

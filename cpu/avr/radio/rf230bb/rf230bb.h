@@ -71,7 +71,7 @@
 #define RF230_REVB                              ( 2 )
 #define SUPPORTED_MANUFACTURER_ID               ( 31 )
 
-#if defined(__AVR_ATmega128RFA1__)
+#if HAL_USING_BUILT_IN_RADIO
 #define RF230_SUPPORTED_INTERRUPT_MASK          ( 0xFF )
 #else
 /* RF230 does not support RX_START interrupts in extended mode, but it seems harmless to always enable it. */

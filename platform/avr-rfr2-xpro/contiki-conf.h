@@ -50,6 +50,12 @@
 
 #include <stdint.h>
 
+#include <avr/eeprom.h>
+
+/* Skip the last eight bytes of the EEPROM, to leave room for things
+ * like the avrdude erase count and bootloader signaling. */
+#define EEPROM_CONF_SIZE		((E2END + 1) - 8)
+
 /* The AVR tick interrupt usually is done with an 8 bit counter around 128 Hz.
  * 125 Hz needs slightly more overhead during the interrupt, as does a 32 bit
  * clock_time_t.
@@ -71,6 +77,8 @@ typedef unsigned long clock_time_t;
 /* These routines are not part of the contiki core but can be enabled in cpu/avr/clock.c */
 void clock_delay_msec(uint16_t howlong);
 void clock_adjust_ticks(clock_time_t howmany);
+
+#define CONTIKI_CONF_SETTINGS_MANAGER 1
 
 /* Michael Hartman's atmega128rfa1 board has an external 32768Hz crystal connected to TOSC1 and 2 pins similar to the Raven 1284p */
 /* and theoretically can use TIMER2 with it to keep time. Else TIMER0 is used. */
