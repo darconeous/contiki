@@ -544,6 +544,10 @@ void menu_process(char c)
 				usbstick_mode.sendToRf = 0;
 				usbstick_mode.translate = 0;
 				rf230_listen_channel(rf230_get_channel());
+#if CONTIKI_CONF_SETTINGS_MANAGER
+				settings_set_uint8(TCC('r','f'),usbstick_mode.sendToRf);
+				settings_set_uint8(TCC('t','r'),usbstick_mode.translate);
+#endif
 				break;
 
 #if RF230BB && RF230_CONF_SNEEZER
@@ -576,6 +580,10 @@ void menu_process(char c)
 				usbstick_mode.sendToRf = 1;
 				usbstick_mode.translate = 1;
 				rf230_set_channel(rf230_get_channel());
+#if CONTIKI_CONF_SETTINGS_MANAGER
+				settings_set_uint8(TCC('r','f'),usbstick_mode.sendToRf);
+				settings_set_uint8(TCC('t','r'),usbstick_mode.translate);
+#endif
 				break;
 
 			case '6':
@@ -586,6 +594,9 @@ void menu_process(char c)
 					PRINTF_P(PSTR("Jackdaw now performs 6lowpan translations\n\r"));
 					usbstick_mode.sicslowpan = 1;
 				}	
+#if CONTIKI_CONF_SETTINGS_MANAGER
+				settings_set_uint8(TCC('s','l'),usbstick_mode.sicslowpan);
+#endif
 				
 				break;
 
@@ -599,8 +610,16 @@ void menu_process(char c)
 				PRINTF_P(PSTR("Wiping all settings. . .\n\r"));
 				settings_wipe();
                                 {
-				const uint32_t x = 0xFFFFFF;
-				eeprom_write(0, (uint8_t *)&x, sizeof(x));
+                                int i;
+                                uint32_t x;
+                                for(i=0;i<EEPROM_CONF_SIZE;i+=sizeof(x)) {
+				  x = 0;
+                                  eeprom_read(i, (uint8_t *)&x, sizeof(x));
+				  if(x!=0xFFFFFFFF) {
+                                    x = 0xFFFFFFFF;
+				    eeprom_write(i, (uint8_t *)&x, sizeof(x));
+                                  }
+                                }
                                 }
 				PRINTF_P(PSTR("Done.\n\r"));
 				break;

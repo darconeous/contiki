@@ -56,14 +56,14 @@ endif
 
 
 MCU=at90usb1287
-AVRDUDE_PROGRAMMER=jtag2
+AVRDUDE_PROGRAMMER=dragon_jtag
 
 # For usb devices, you may either use PORT=usb, or (e.g. if you have more than one
 # programmer connected) you can use the following trick to find out the serial number:
 #
 # The example is for an JTAGICE mkII used to program an ATmega128:
 # avrdude -v -P usb:xxxx -c jtag2 -p atmega128
-AVRDUDE_PORT=usb:00B000000D79
+AVRDUDE_PORT=usb
 
 
 

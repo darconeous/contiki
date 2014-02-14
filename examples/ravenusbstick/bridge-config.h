@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 #define USB_CONF_MACINTOSH			1
+#define USB_CONF_RS232                          1
 
 #define CONTIKI_CONF_DEFAULT_HOSTNAME   "jackdaw"
 

@@ -7,8 +7,11 @@ all:
 clean:
 	${MAKE} -f Makefile.ravenusbstick clean
 	rm -rf obj_avr-ravenusb
-	rm -rf symbols.c symbols.h ravenusbstick.elf ravenusbstick.hex
+	rm symbols.c symbols.h ravenusbstick.elf ravenusbstick.hex
 
-burn: all
+burn-dfu: all
 	dfu-programmer at90usb1287 flash ravenusbstick.hex
 	dfu-programmer at90usb1287 start
+
+burn:
+	${MAKE} -f Makefile.ravenusbstick ravenusbstick.u

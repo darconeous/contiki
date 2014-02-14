@@ -430,7 +430,7 @@ settings_wipe(void)
   /* Simply making the first item invalid will effectively
    * clear the key-value store.
    */
-  const uint32_t x = 0xFFFFFF;
+  const uint32_t x = 0xFFFFFFFF;
 
   eeprom_write(SETTINGS_TOP_ADDR - sizeof(x), (uint8_t *)&x, sizeof(x));
 }

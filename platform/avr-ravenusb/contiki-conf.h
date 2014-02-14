@@ -62,9 +62,21 @@
 
 #include <avr/eeprom.h>
 
-/* Skip the last four bytes of the EEPROM, to leave room for things
- * like the avrdude erase count and bootloader signaling. */
-#define EEPROM_CONF_SIZE		((E2END + 1) - 4)
+#define EEPROM_CONF_SIZE		(E2END + 1)
+
+#ifndef EEPROM_END_ADDR
+#define EEPROM_END_ADDR         (EEPROM_CONF_SIZE - 1)
+#endif
+
+#ifndef SETTINGS_MAX_SIZE
+/** The maximum amount EEPROM dedicated to settings. */
+#define SETTINGS_MAX_SIZE	(127)  /**< Defaults to 127 bytes */
+#endif
+
+#ifndef SETTINGS_TOP_ADDR
+/** The top address in EEPROM that settings should use. Inclusive. */
+#define SETTINGS_TOP_ADDR	(settings_iter_t)(EEPROM_END_ADDR-4)
+#endif
 
 /* The AVR tick interrupt usually is done with an 8 bit counter around 128 Hz.
  * 125 Hz needs slightly more overhead during the interrupt, as does a 32 bit

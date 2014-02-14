@@ -230,6 +230,7 @@ cdc_ecm_process(void) {
 			//Wait for new data
 			if(usb_endpoint_wait_for_read_enabled()!=0) {
 				USB_ETH_HOOK_RX_ERROR("Timeout: read enabled");
+				Usb_enable_stall_handshake();
 				goto bail;
 			}
 		}
@@ -270,7 +271,8 @@ ecm_send(uint8_t * senddata, uint16_t sendlen, uint8_t led) {
 
 	if(usb_endpoint_wait_for_write_enabled()!=0) {
 		USB_ETH_HOOK_TX_ERROR("Timeout: write enabled");
-		return 0;
+                Usb_enable_stall_handshake();
+                return 0;
 	}
 
 #ifdef USB_ETH_HOOK_TX_START
@@ -291,6 +293,7 @@ ecm_send(uint8_t * senddata, uint16_t sendlen, uint8_t led) {
 
 			if(usb_endpoint_wait_for_write_enabled()!=0) {
 				USB_ETH_HOOK_TX_ERROR("Timeout: write enabled");
+                                Usb_enable_stall_handshake();
 				return 0;
 			}
 			byte_in_packet=0;
@@ -308,6 +311,7 @@ ecm_send(uint8_t * senddata, uint16_t sendlen, uint8_t led) {
     //Wait for ready
 	if(usb_endpoint_wait_for_IN_ready()!=0) {
 		USB_ETH_HOOK_TX_ERROR("Timeout: IN ready");
+                Usb_enable_stall_handshake();
 		return 0;
 	}
 

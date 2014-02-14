@@ -138,10 +138,10 @@ ifndef NOAVRSIZE
 	avr-size -C --mcu=$(MCU) $@
 endif
 
-%.hex: %.out
+%.hex: %.elf
 	$(OBJCOPY) $^ -j .text -j .data -O ihex $@
 
-%.ihex: %.out
+%.ihex: %.elf
 	$(OBJCOPY) $^ -O ihex $@
 
 # Add a namelist to the kernel

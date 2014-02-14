@@ -58,6 +58,8 @@
 
 #define USB_ETH_MTU	UIP_BUFSIZE+4
 
+//#define USB_ETH_HOOK_TX_ERROR(string)   cdc_ecm_configure_endpoints()
+//#define USB_ETH_HOOK_RX_ERROR(string)   cdc_ecm_configure_endpoints()
 
 /*! Hook Documentation
 **	USB_ETH_HOOK_RX_START()

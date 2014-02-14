@@ -526,9 +526,15 @@ void mac_LowpanToEthernet(void)
   uip_len += UIP_LLH_LEN;
 
 #if SICSLOW_ETHERNET_CONF_UPDATE_USB_ETH_STATS
-  usb_eth_stat.rxok+=	// Adds the return value from usb_eth_send to rxok
-#endif
+  if(usb_eth_send(uip_buf, uip_len, 1) != 0) {
+    usb_eth_stat.rxok++;
+  } else {
+    usb_eth_stat.rxbad++;
+  }
+#else
   usb_eth_send(uip_buf, uip_len, 1);
+#endif
+
   uip_len = 0;
 }
 
@@ -960,7 +966,11 @@ mac_log_802_15_4_tx(const uint8_t* buffer, size_t len) {
 		ETHBUF(raw_buf)->dest.addr[0] = 0x03;
 
 		len += UIP_LLH_LEN;
-		usb_eth_send(raw_buf, len, 0);
+  if(usb_eth_send(raw_buf, len, 0) != 0) {
+    usb_eth_stat.rxok++;
+  } else {
+    usb_eth_stat.rxbad++;
+  }
 	}
 }
 
@@ -980,6 +990,11 @@ mac_log_802_15_4_rx(const uint8_t* buf, size_t len) {
 
 		len += UIP_LLH_LEN;
 		usb_eth_send(raw_buf, len, 0);
+  if(usb_eth_send(raw_buf, len, 0) != 0) {
+    usb_eth_stat.rxok++;
+  } else {
+    usb_eth_stat.rxbad++;
+  }
 	}
 }
 /* The rf230bb send driver may call this routine via  RF230BB_HOOK_IS_SEND_ENABLED */
